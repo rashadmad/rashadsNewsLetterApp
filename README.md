@@ -2,6 +2,11 @@
 
 This repository is a **newsletter app** starter built around [listmonk](https://github.com/knadh/listmonk).
 
+## Prerequisites
+
+- Docker
+- Docker Compose
+
 ## Getting started
 
 1. Clone this repository:
@@ -13,7 +18,8 @@ This repository is a **newsletter app** starter built around [listmonk](https://
    ```bash
    cp .env.example .env
    ```
-   Then set a strong `LISTMONK_DB_PASSWORD` in `.env`.
+   Then replace `LISTMONK_DB_PASSWORD=change-this-db-password` with a strong password in `.env`.
+   If you set `LISTMONK_ADMIN_USER` / `LISTMONK_ADMIN_PASSWORD`, they are only applied on the first initialization against an empty database volume.
 3. Start the Docker services:
    ```bash
    docker compose up -d
