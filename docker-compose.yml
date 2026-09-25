@@ -30,7 +30,7 @@ services:
       - sh
       - -c
       - |
-        DB_PASS_ESCAPED=$(printf '%s' "$LISTMONK_DB_PASSWORD" | sed 's/[\/&|]/\\&/g')
+        DB_PASS_ESCAPED=$(printf '%s' "$LISTMONK_DB_PASSWORD" | sed 's/[\\\/&|]/\\&/g')
         cp /listmonk/config.toml /tmp/config.toml
         sed -i "s|password = \"\"|password = \"$${DB_PASS_ESCAPED}\"|" /tmp/config.toml
         ./listmonk --config /tmp/config.toml

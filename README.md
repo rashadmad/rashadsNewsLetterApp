@@ -14,15 +14,19 @@ This repository is a **newsletter app** starter built around [listmonk](https://
    cp .env.example .env
    ```
    Then update `LISTMONK_DB_PASSWORD` in `.env` to a strong password.
-3. Start the Docker services:
+3. Start only the database service:
    ```bash
-   docker compose up -d
+   docker compose up -d db
    ```
 4. Run one-time listmonk installation (interactive; set admin credentials when prompted):
    ```bash
-   docker compose run --rm listmonk sh -c 'DB_PASS_ESCAPED=$(printf "%s" "$LISTMONK_DB_PASSWORD" | sed "s/[\\/&|]/\\\\&/g"); cp /listmonk/config.toml /tmp/config.toml; sed -i "s|password = \"\"|password = \"${DB_PASS_ESCAPED}\"|" /tmp/config.toml; ./listmonk --install --config /tmp/config.toml'
+   docker compose run --rm listmonk sh -c 'DB_PASS_ESCAPED=$(printf "%s" "$LISTMONK_DB_PASSWORD" | sed "s/[\\\\\\/&|]/\\\\&/g"); cp /listmonk/config.toml /tmp/config.toml; sed -i "s|password = \"\"|password = \"${DB_PASS_ESCAPED}\"|" /tmp/config.toml; ./listmonk --install --config /tmp/config.toml'
    ```
-5. Open listmonk at [http://localhost:9000](http://localhost:9000).
+5. Start the app service:
+   ```bash
+   docker compose up -d listmonk
+   ```
+6. Open listmonk at [http://localhost:9000](http://localhost:9000).
 
 ## Optional: clone upstream listmonk source
 
