@@ -24,7 +24,7 @@ services:
       - "9000:9000"
     volumes:
       - ./config.toml:/listmonk/config.toml:ro
-    command: ["sh", "-c", "./listmonk --install --yes --config /listmonk/config.toml && ./listmonk --upgrade --yes --config /listmonk/config.toml && ./listmonk --config /listmonk/config.toml"]
+    command: ["./listmonk", "--config", "/listmonk/config.toml"]
 
 volumes:
   listmonk-db:

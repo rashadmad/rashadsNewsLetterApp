@@ -1,7 +1,7 @@
 [app]
 address = "0.0.0.0:9000"
-admin_username = "admin"
-admin_password = "admin"
+admin_username = "CHANGE_ME_ADMIN_USER"
+admin_password = "CHANGE_ME_ADMIN_PASSWORD"
 
 [db]
 host = "db"
