@@ -1,4 +1,4 @@
-# Rashad's Newsletter App
+# rashadsNewsLetterApp
 
 This repository is a **newsletter app** starter built around [listmonk](https://github.com/knadh/listmonk).
 
@@ -24,21 +24,20 @@ This repository is a **newsletter app** starter built around [listmonk](https://
    ```bash
    docker compose up -d db
    ```
-4. Wait for Postgres to become ready:
+4. Wait for Postgres to become healthy:
    ```bash
-   until docker compose exec -T db sh -c 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"' >/dev/null 2>&1; do sleep 2; done
+   until [ "$(docker inspect -f '{{.State.Health.Status}}' listmonk_db 2>/dev/null)" = "healthy" ]; do sleep 2; done
    ```
 5. Run one-time setup commands:
    ```bash
    docker compose run --rm listmonk ./listmonk --install --idempotent --yes
-   docker compose run --rm listmonk ./listmonk --upgrade --yes
    ```
 6. Start the app service:
    ```bash
    docker compose up -d listmonk
    ```
 7. Open listmonk at [http://localhost:9000](http://localhost:9000).
-   Use the bootstrap credentials/output from the install command, then change the admin password immediately after first login.
+   If no admin account exists yet, complete listmonk's first-login prompt to create one.
 
 ## Optional: clone upstream listmonk source
 
