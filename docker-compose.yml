@@ -25,8 +25,15 @@ services:
     volumes:
       - ./config.toml:/listmonk/config.toml:ro
     environment:
-      LISTMONK_db__password: ${LISTMONK_DB_PASSWORD:?set LISTMONK_DB_PASSWORD in .env}
-    command: ["./listmonk", "--config", "/listmonk/config.toml"]
+      LISTMONK_DB_PASSWORD: ${LISTMONK_DB_PASSWORD:?set LISTMONK_DB_PASSWORD in .env}
+    command:
+      - sh
+      - -c
+      - |
+        DB_PASS_ESCAPED=$(printf '%s' "$LISTMONK_DB_PASSWORD" | sed 's/[\/&]/\\&/g')
+        cp /listmonk/config.toml /tmp/config.toml
+        sed -i "s|password = \"\"|password = \"$${DB_PASS_ESCAPED}\"|" /tmp/config.toml
+        ./listmonk --config /tmp/config.toml
 
 volumes:
   listmonk-db:

@@ -20,7 +20,7 @@ This repository is a **newsletter app** starter built around [listmonk](https://
    ```
 4. Run one-time listmonk installation (interactive; set admin credentials when prompted):
    ```bash
-   docker compose run --rm listmonk ./listmonk --install --config /listmonk/config.toml
+   docker compose run --rm listmonk sh -c 'DB_PASS_ESCAPED=$(printf "%s" "$LISTMONK_DB_PASSWORD" | sed "s/[\\/&]/\\\\&/g"); cp /listmonk/config.toml /tmp/config.toml; sed -i "s|password = \"\"|password = \"${DB_PASS_ESCAPED}\"|" /tmp/config.toml; ./listmonk --install --config /tmp/config.toml'
    ```
 5. Open listmonk at [http://localhost:9000](http://localhost:9000).
 
@@ -41,3 +41,5 @@ Settings are defined in:
 - `docker-compose.yml`
 - `config.toml`
 - `.env` (local, untracked secrets)
+
+`LISTMONK_DB_PASSWORD` is injected into a temporary runtime config for both `docker compose up` and the one-time install command.
