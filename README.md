@@ -38,7 +38,7 @@ This repository is a **newsletter app** starter built around [listmonk](https://
    docker compose up -d listmonk
    ```
 7. Open listmonk at [http://localhost:9000](http://localhost:9000).
-   Sign in with the default bootstrap account created by `--install --yes` (`admin` / `listmonk`) and change it immediately.
+   Use the bootstrap credentials/output from the install command, then change the admin password immediately after first login.
 
 ## Optional: clone upstream listmonk source
 
