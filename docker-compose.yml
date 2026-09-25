@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: listmonk
       POSTGRES_USER: listmonk
-      POSTGRES_PASSWORD: listmonk
+      POSTGRES_PASSWORD: ${LISTMONK_DB_PASSWORD:?set LISTMONK_DB_PASSWORD in .env}
     volumes:
       - listmonk-db:/var/lib/postgresql/data
     healthcheck:
@@ -15,7 +15,7 @@ services:
       retries: 5
 
   listmonk:
-    image: listmonk/listmonk:latest
+    image: listmonk/listmonk:v4.1.0
     container_name: listmonk
     depends_on:
       db:
@@ -24,6 +24,8 @@ services:
       - "9000:9000"
     volumes:
       - ./config.toml:/listmonk/config.toml:ro
+    environment:
+      LISTMONK_db__password: ${LISTMONK_DB_PASSWORD:?set LISTMONK_DB_PASSWORD in .env}
     command: ["./listmonk", "--config", "/listmonk/config.toml"]
 
 volumes:

@@ -9,23 +9,35 @@ This repository is a **newsletter app** starter built around [listmonk](https://
    git clone https://github.com/rashadmad/rashadsNewsLetterApp.git
    cd rashadsNewsLetterApp
    ```
-2. Clone listmonk source (optional, for customization/reference):
+2. Create local environment values:
    ```bash
-   git clone https://github.com/knadh/listmonk.git
+   cp .env.example .env
    ```
-   > Note: the Docker setup in this repo uses the published `listmonk/listmonk` image by default.
-3. Update admin credentials in `config.toml` before first run.
-4. Start the Docker services:
+   Then update `LISTMONK_DB_PASSWORD` in `.env` to a strong password.
+3. Start the Docker services:
    ```bash
    docker compose up -d
    ```
+4. Run one-time listmonk installation (interactive; set admin credentials when prompted):
+   ```bash
+   docker compose run --rm listmonk ./listmonk --install --config /listmonk/config.toml
+   ```
 5. Open listmonk at [http://localhost:9000](http://localhost:9000).
+
+## Optional: clone upstream listmonk source
+
+If you want to inspect or customize upstream code directly:
+
+```bash
+git clone https://github.com/knadh/listmonk.git
+```
 
 ## Docker services
 
 - `db`: PostgreSQL database for listmonk.
-- `listmonk`: listmonk app server.
+- `listmonk`: listmonk app server (pinned to `listmonk/listmonk:v4.1.0`).
 
-Default credentials and settings are defined in:
+Settings are defined in:
 - `docker-compose.yml`
 - `config.toml`
+- `.env` (local, untracked secrets)
