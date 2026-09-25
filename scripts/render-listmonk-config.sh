@@ -3,8 +3,8 @@ set -eu
 
 : "${LISTMONK_DB_PASSWORD:?set LISTMONK_DB_PASSWORD in .env}"
 
-if printf '%s' "$LISTMONK_DB_PASSWORD" | grep -q '[[:cntrl:]]'; then
-  echo "LISTMONK_DB_PASSWORD must not contain control characters (newline, tab, carriage return, etc.)." >&2
+if printf '%s' "$LISTMONK_DB_PASSWORD" | LC_ALL=C grep -q '[^[:print:]]'; then
+  echo "LISTMONK_DB_PASSWORD must contain printable characters only." >&2
   exit 1
 fi
 

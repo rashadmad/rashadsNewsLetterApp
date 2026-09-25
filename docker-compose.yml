@@ -26,7 +26,7 @@ services:
       - ./scripts/render-listmonk-config.sh:/listmonk/render-listmonk-config.sh:ro
     environment:
       LISTMONK_DB_PASSWORD: ${LISTMONK_DB_PASSWORD:?set LISTMONK_DB_PASSWORD in .env}
-    command: ["sh", "-c", "/listmonk/render-listmonk-config.sh && ./listmonk --yes --config /tmp/config.toml"]
+    command: ["sh", "-c", "/listmonk/render-listmonk-config.sh && ./listmonk --config /tmp/config.toml"]
 
 volumes:
   listmonk-db:
