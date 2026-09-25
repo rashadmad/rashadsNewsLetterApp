@@ -14,7 +14,7 @@ This repository is a **newsletter app** starter built around [listmonk](https://
    cp .env.example .env
    ```
    Then update `LISTMONK_DB_PASSWORD` in `.env` to a strong password.
-3. Start only the database service:
+3. Start only the database service and keep it running for installation:
    ```bash
    docker compose up -d db
    ```
@@ -45,7 +45,6 @@ git clone https://github.com/knadh/listmonk.git
 
 Settings are defined in:
 - `docker-compose.yml`
-- `config.toml`
 - `scripts/render-listmonk-config.sh`
 - `.env` (local, untracked secrets)
 

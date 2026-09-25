@@ -3,12 +3,7 @@ set -eu
 
 : "${LISTMONK_DB_PASSWORD:?set LISTMONK_DB_PASSWORD in .env}"
 
-case "$LISTMONK_DB_PASSWORD" in
-  *"'"*)
-    echo "LISTMONK_DB_PASSWORD cannot contain single quote (') in this starter setup." >&2
-    exit 1
-    ;;
-esac
+DB_PASS_ESCAPED=$(printf '%s' "$LISTMONK_DB_PASSWORD" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')
 
 cat > /tmp/config.toml <<CONFIG
 [app]
@@ -18,7 +13,7 @@ address = "0.0.0.0:9000"
 host = "db"
 port = 5432
 user = "listmonk"
-password = '$LISTMONK_DB_PASSWORD'
+password = "$DB_PASS_ESCAPED"
 database = "listmonk"
 ssl_mode = "disable"
 max_open = 25
