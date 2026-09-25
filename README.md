@@ -41,11 +41,11 @@ git clone https://github.com/knadh/listmonk.git
 ## Docker services
 
 - `db`: PostgreSQL database for listmonk.
-- `listmonk`: listmonk app server (pinned to `listmonk/listmonk:v4.1.0`).
+- `listmonk`: listmonk app server (image version is pinned in `docker-compose.yml`).
 
 Settings are defined in:
 - `docker-compose.yml`
 - `scripts/render-listmonk-config.sh`
 - `.env` (local, untracked secrets)
 
-`LISTMONK_DB_PASSWORD` is read from `.env` and applied to a temporary runtime config for both `docker compose up` and the one-time install command.
+`LISTMONK_DB_PASSWORD` is read from `.env` and applied to a temporary runtime config at `/tmp/config.toml` inside the container for both `docker compose up` and the one-time install command.
