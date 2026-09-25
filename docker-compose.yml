@@ -24,16 +24,10 @@ services:
       - "9000:9000"
     volumes:
       - ./config.toml:/listmonk/config.toml:ro
+      - ./scripts/render-listmonk-config.sh:/listmonk/render-listmonk-config.sh:ro
     environment:
       LISTMONK_DB_PASSWORD: ${LISTMONK_DB_PASSWORD:?set LISTMONK_DB_PASSWORD in .env}
-    command:
-      - sh
-      - -c
-      - |
-        DB_PASS_ESCAPED=$(printf '%s' "$LISTMONK_DB_PASSWORD" | sed 's/[\\\/&|]/\\&/g')
-        cp /listmonk/config.toml /tmp/config.toml
-        sed -i "s|password = \"\"|password = \"$${DB_PASS_ESCAPED}\"|" /tmp/config.toml
-        ./listmonk --config /tmp/config.toml
+    command: ["sh", "-c", "/listmonk/render-listmonk-config.sh && ./listmonk --config /tmp/config.toml"]
 
 volumes:
   listmonk-db:
