@@ -1,4 +1,4 @@
-# Rashad's Newsletter App (`rashadsNewsLetterApp`)
+# Rashad's Newsletter App
 
 This repository is a **newsletter app** starter built around [listmonk](https://github.com/knadh/listmonk).
 
@@ -18,7 +18,8 @@ This repository is a **newsletter app** starter built around [listmonk](https://
    ```bash
    cp .env.example .env
    ```
-   All values in `.env` are starter placeholders. Replace `LISTMONK_DB_USER`, `LISTMONK_DB_NAME`, and `LISTMONK_DB_PASSWORD` with your own secure values.
+   `LISTMONK_DB_USER` and `LISTMONK_DB_NAME` are configuration values; adjust them as needed for your setup.
+   **You must replace `LISTMONK_DB_PASSWORD=change-this-db-password` before first run.**
 3. Start only the database service:
    ```bash
    docker compose up -d db
@@ -29,15 +30,15 @@ This repository is a **newsletter app** starter built around [listmonk](https://
    ```
 5. Run one-time setup commands:
    ```bash
-   docker compose run --rm --no-deps listmonk ./listmonk --install --idempotent --yes
-   docker compose run --rm --no-deps listmonk ./listmonk --upgrade --yes
+   docker compose run --rm listmonk ./listmonk --install --idempotent --yes
+   docker compose run --rm listmonk ./listmonk --upgrade --yes
    ```
 6. Start the app service:
    ```bash
    docker compose up -d listmonk
    ```
 7. Open listmonk at [http://localhost:9000](http://localhost:9000).
-   On first login, follow listmonk's UI prompt to create the initial admin account.
+   Sign in with the default bootstrap account created by `--install --yes` (`admin` / `listmonk`) and change it immediately.
 
 ## Optional: clone upstream listmonk source
 
