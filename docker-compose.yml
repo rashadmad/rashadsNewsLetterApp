@@ -33,8 +33,6 @@ services:
       LISTMONK_db__max_open: 25
       LISTMONK_db__max_idle: 25
       LISTMONK_db__max_lifetime: 300s
-      LISTMONK_ADMIN_USER: ${LISTMONK_ADMIN_USER:-}
-      LISTMONK_ADMIN_PASSWORD: ${LISTMONK_ADMIN_PASSWORD:-}
 
 volumes:
   listmonk-db:
