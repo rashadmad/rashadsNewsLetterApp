@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: listmonk_db
+    environment:
+      POSTGRES_DB: listmonk
+      POSTGRES_USER: listmonk
+      POSTGRES_PASSWORD: listmonk
+    volumes:
+      - listmonk-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U listmonk -d listmonk"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  listmonk:
+    image: listmonk/listmonk:latest
+    container_name: listmonk
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./config.toml:/listmonk/config.toml:ro
+    command: ["sh", "-c", "./listmonk --install --yes --config /listmonk/config.toml && ./listmonk --upgrade --yes --config /listmonk/config.toml && ./listmonk --config /listmonk/config.toml"]
+
+volumes:
+  listmonk-db:
