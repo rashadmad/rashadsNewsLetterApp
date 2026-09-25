@@ -35,7 +35,6 @@ services:
       LISTMONK_db__max_lifetime: 300s
       LISTMONK_ADMIN_USER: ${LISTMONK_ADMIN_USER:-}
       LISTMONK_ADMIN_PASSWORD: ${LISTMONK_ADMIN_PASSWORD:-}
-    command: ["sh", "-c", "./listmonk --install --idempotent --yes --config '' && ./listmonk --upgrade --yes --config '' && ./listmonk --config ''"]
 
 volumes:
   listmonk-db:
