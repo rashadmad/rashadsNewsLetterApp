@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: listmonk_db
+    environment:
+      POSTGRES_DB: ${LISTMONK_DB_NAME:-listmonk}
+      POSTGRES_USER: ${LISTMONK_DB_USER:-listmonk}
+      POSTGRES_PASSWORD: ${LISTMONK_DB_PASSWORD:?set LISTMONK_DB_PASSWORD in .env}
+    volumes:
+      - listmonk-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${LISTMONK_DB_USER:-listmonk} -d ${LISTMONK_DB_NAME:-listmonk}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  listmonk:
+    image: listmonk/listmonk:v4.1.0
+    container_name: listmonk
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "9000:9000"
+    environment:
+      LISTMONK_app__address: 0.0.0.0:9000
+      LISTMONK_db__host: db
+      LISTMONK_db__port: 5432
+      LISTMONK_db__user: ${LISTMONK_DB_USER:-listmonk}
+      LISTMONK_db__password: ${LISTMONK_DB_PASSWORD:?set LISTMONK_DB_PASSWORD in .env}
+      LISTMONK_db__database: ${LISTMONK_DB_NAME:-listmonk}
+      LISTMONK_db__ssl_mode: disable
+      LISTMONK_db__max_open: 25
+      LISTMONK_db__max_idle: 25
+      LISTMONK_db__max_lifetime: 300s
+
+volumes:
+  listmonk-db:
