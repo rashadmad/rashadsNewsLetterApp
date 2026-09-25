@@ -13,22 +13,14 @@ This repository is a **newsletter app** starter built around [listmonk](https://
    ```bash
    cp .env.example .env
    ```
-   Then update `LISTMONK_DB_PASSWORD` in `.env` to a strong password.
-3. Start only the database service and keep it running for installation:
+   Then set a strong `LISTMONK_DB_PASSWORD` in `.env`.
+3. Start the Docker services:
    ```bash
-   docker compose up -d db
+   docker compose up -d
    ```
-4. Run one-time listmonk installation (interactive; set admin credentials when prompted):
-   ```bash
-   docker compose run --rm listmonk sh -c '/listmonk/render-listmonk-config.sh && ./listmonk --install --config /tmp/config.toml'
-   ```
-5. Start the app service:
-   ```bash
-   docker compose up -d listmonk
-   ```
-6. Open listmonk at [http://localhost:9000](http://localhost:9000).
+4. Open listmonk at [http://localhost:9000](http://localhost:9000).
 
-Why this flow: `docker compose run --rm listmonk` is used once to initialize listmonk before the long-running app container starts, so installation and app runtime don't run concurrently.
+The app service uses an idempotent startup command (`--install --idempotent`, `--upgrade`, then server start), so first-time setup and normal restarts use the same flow.
 
 ## Optional: clone upstream listmonk source
 
@@ -45,7 +37,4 @@ git clone https://github.com/knadh/listmonk.git
 
 Settings are defined in:
 - `docker-compose.yml`
-- `scripts/render-listmonk-config.sh`
 - `.env` (local, untracked secrets)
-
-`LISTMONK_DB_PASSWORD` is read from `.env` and applied to a temporary runtime config at `/tmp/config.toml` inside the container for both `docker compose up` and the one-time install command.
