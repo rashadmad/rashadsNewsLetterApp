@@ -22,4 +22,4 @@ Every email gets a per-recipient unsubscribe link and `List-Unsubscribe` headers
 ```bash
 sam build && sam deploy --guided   # asks for the parameters in template.yaml
 ```
-Prerequisite: verify your sending domain in SES (DNS records in docs/DESIGN.md).
+Step-by-step guide: [docs/DEPLOY.md](docs/DEPLOY.md). SES DNS records: docs/DESIGN.md.
