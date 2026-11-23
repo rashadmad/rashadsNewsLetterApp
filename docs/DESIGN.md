@@ -1,33 +1,39 @@
-# Newsletter app – design proposal
+# Newsletter app – design proposal (v2)
 
-## Goal
-Collect newsletter signups from the store (rashadmadisonstore) and, later, send newsletters to subscribers. This repo absorbs the empty `thequintessential-mail` repo.
+## Scope
+This app does **three things only**: create emails, schedule them, and send them.
+It does **not** handle signups and does **not** own the subscriber list. People subscribe through the form on the store, and the list lives in the store's Medusa backend. (The old `POST /newsletter-signups` endpoint and subscriber table were removed.)
 
-## Recommended stack (kept deliberately small)
-- **Node.js 20+ with plain `node:http`** – no web framework needed for one endpoint.
-- **SQLite** (via `better-sqlite3`) – one file, no database server to pay for or manage.
-- **Hosting:** any small host with a persistent disk (Railway, Fly.io, or a small VPS). Serverless hosts (Vercel) are *not* a fit for SQLite. If you prefer serverless, swap SQLite for Postgres (e.g. Neon) – the code touching the DB is ~15 lines.
+The store's `/api/newsletter` route currently forwards signups to `NEWSLETTER_SIGNUP_URL`. Once Medusa holds the list, that forwarding should be pointed at Medusa (or removed) – see decisions below.
 
-## Subscriber storage
-Table `subscribers`: `email` (primary key, lowercased – this is the dedupe key the store expects), `first_name`, `last_name`, `source`, `status` (`subscribed` / `unsubscribed`), `created_at`. Re-signups update the name instead of creating duplicates. Back up the `.db` file regularly.
+## Stack
+- Node.js 20+, plain `node:http`, SQLite (`better-sqlite3`). Storage holds only drafts, schedules and send history – no personal data except recipient emails in the send log.
+- Email provider: **Resend** (recommended). With no API key the app runs in dry-run mode (logs instead of sending).
+- Hosting: anything with a persistent disk (Railway, Fly.io, small VPS).
 
-## Signup endpoint (matches what the store sends)
-`POST /newsletter-signups`, header `x-newsletter-key: <shared secret>`, JSON body:
-```json
-{ "email": "person@example.com", "firstName": "First", "lastName": "Last", "source": "the-quintessential-storefront" }
-```
-Returns `200 {ok:true}` on success, `401` bad key, `400` bad input. In the store set `NEWSLETTER_SIGNUP_URL=https://<this app>/newsletter-signups` and `NEWSLETTER_SIGNUP_KEY` to the same secret as this app. Also `GET /health` for uptime checks.
+## Data
+- `emails`: subject, HTML body, status (`draft`/`scheduled`/`sending`/`sent`/`failed`), `scheduled_at`, `sent_at`.
+- `send_log`: per-recipient result of each send (success/error).
 
-## Sending approach (not built yet)
-Use a transactional/bulk email provider API (**Resend** recommended; Postmark or Amazon SES also fine) rather than running your own mail server. Plan:
-1. Write newsletters as Markdown/HTML files or via a simple script.
-2. A `npm run send` command loops over `subscribed` rows and sends in batches.
-3. Every email carries an **unsubscribe link** (signed token → `GET /unsubscribe`), plus your postal address – legally required (CAN-SPAM/GDPR).
-4. Consider double opt-in (confirmation email) before the first send.
+## API (all require header `x-admin-key`)
+- `POST /emails` `{subject, bodyHtml}` – create a draft; `GET /emails`, `GET /emails/:id`, `PUT /emails/:id` – list/read/edit (until sent)
+- `POST /emails/:id/schedule` `{scheduledAt}` – ISO date in the future
+- `POST /emails/:id/send` – send now
+- `GET /emails/:id/log` – who got it / failures
+- `GET /health` (no key)
 
-## Decisions needed from you
-1. Hosting choice (needs persistent disk for SQLite, or switch to Postgres).
-2. Email provider (Resend recommended).
-3. Double opt-in: yes/no.
-4. How you want to write/send issues: script/Markdown files vs. a small admin page.
-5. Whether to import store customers into the list (needs their consent).
+A scheduler checks every minute and sends due emails. Each email is "claimed" before sending so it can't go out twice.
+
+## Getting recipients from Medusa
+At send time the app asks Medusa for the list (read-only), so there's nothing to keep in sync. Simplest option, implemented in `src/recipients.js`: call Medusa's **Admin API** `GET /admin/customers` with a read-only API key and keep customers whose `metadata.newsletter === true`.
+**Caveat:** the store code I can see does not yet save signups into Medusa – the form only forwards to the companion app. Someone needs to add that (e.g. store the opt-in on the customer or in a small custom Medusa "subscriber" module). The recipient code is one small function, so it's easy to adapt to whatever shape Medusa ends up using (or a CSV export as a fallback).
+
+## Creating emails
+First version: write HTML via the API (or a Markdown/HTML file + small script). A simple admin page/editor with templates is a later step.
+
+## Decisions needed
+1. **How Medusa exposes the list** – metadata flag on customers (assumed), a custom subscriber module, or manual CSV export. Also: who builds the store-side change that saves signups into Medusa.
+2. **Unsubscribe** – recommended: each email has an unsubscribe link pointing at the store/Medusa, which flips the opt-in flag, so this app never owns consent state. Required by law (CAN-SPAM/GDPR) before real sends; also needs a postal address in the footer.
+3. **Email provider** (Resend recommended) and a verified sending domain.
+4. **Hosting** (persistent disk for SQLite, or switch to Postgres).
+5. **Editor**: API/scripts first, or build a small admin page now?
