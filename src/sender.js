@@ -1,40 +1,45 @@
-export async function sendEmail({ db, id, getRecipients, mailer }) {
-  const claimed = db
-    .prepare("UPDATE emails SET status='sending' WHERE id=? AND status IN ('draft','scheduled')")
-    .run(id);
-  if (!claimed.changes) return { sent: 0, failed: 0, skipped: true };
-  const email = db.prepare("SELECT * FROM emails WHERE id=?").get(id);
-  const log = db.prepare("INSERT INTO send_log (email_id, recipient, ok, error) VALUES (?,?,?,?)");
-  let sent = 0, failed = 0;
+import { unsubscribeHeaders, unsubscribeUrl, withFooter } from "./unsubscribe.js";
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// unsubscribe: { baseUrl, secret, postalAddress } – required; every email gets a per-recipient unsubscribe link.
+export async function sendEmail({ store, id, getRecipients, mailer, unsubscribe, delayMs = 0 }) {
+  if (!unsubscribe?.baseUrl || !unsubscribe?.secret) throw new Error("Unsubscribe configuration is required");
+  const claimed = await store.updateEmail(id, { status: "sending" }, { onlyIfStatus: ["draft", "scheduled"] });
+  if (!claimed) return { sent: 0, failed: 0, skipped: true };
+  const email = await store.getEmail(id);
+  let sent = 0;
+  let failed = 0;
   try {
     for (const to of await getRecipients()) {
+      const url = unsubscribeUrl(unsubscribe, to);
       try {
-        await mailer({ to, subject: email.subject, html: email.body_html });
-        log.run(id, to, 1, null);
+        await mailer({
+          to,
+          subject: email.subject,
+          html: withFooter(email.bodyHtml, url, unsubscribe.postalAddress),
+          headers: unsubscribeHeaders(url),
+        });
+        await store.addLog(id, { recipient: to, ok: true, error: null });
         sent++;
       } catch (e) {
-        log.run(id, to, 0, String(e.message));
+        await store.addLog(id, { recipient: to, ok: false, error: String(e.message) });
         failed++;
       }
+      if (delayMs) await sleep(delayMs);
     }
   } catch (e) {
-    db.prepare("UPDATE emails SET status='failed' WHERE id=?").run(id);
+    await store.updateEmail(id, { status: "failed" });
     throw e;
   }
-  db.prepare("UPDATE emails SET status='sent', sent_at=CURRENT_TIMESTAMP WHERE id=?").run(id);
+  await store.updateEmail(id, { status: "sent", sentAt: new Date().toISOString() });
   return { sent, failed };
 }
 
-export function startScheduler({ db, getRecipients, mailer, intervalMs = 60_000 }) {
-  const tick = async () => {
-    const due = db
-      .prepare("SELECT id FROM emails WHERE status='scheduled' AND scheduled_at <= ?")
-      .all(new Date().toISOString());
-    for (const { id } of due) {
-      await sendEmail({ db, id: id, getRecipients, mailer }).catch((e) => console.error(e));
-    }
-  };
-  const timer = setInterval(tick, intervalMs);
-  timer.unref();
-  return { tick, stop: () => clearInterval(timer) };
+export async function runDue(deps) {
+  const results = [];
+  for (const id of await deps.store.listDue(new Date().toISOString())) {
+    results.push({ id, ...(await sendEmail({ ...deps, id }).catch((e) => ({ error: e.message }))) });
+  }
+  return results;
 }

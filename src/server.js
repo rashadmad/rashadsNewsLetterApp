@@ -1,20 +1,28 @@
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
-import { createApp, openDb } from "./app.js";
-import { createMailer } from "./mailer.js";
-import { medusaRecipients } from "./recipients.js";
-import { startScheduler } from "./sender.js";
+import http from "node:http";
+import { handle } from "./core.js";
+import { buildDeps } from "./deps.js";
+import { runDue } from "./sender.js";
 
-const env = process.env;
-const dbPath = env.DB_PATH || "./data/newsletter.db";
-mkdirSync(dirname(dbPath), { recursive: true });
+// Local development server (in-memory storage unless TABLE_NAME is set).
+const deps = buildDeps();
+const port = Number(process.env.PORT) || 3000;
 
-const db = openDb(dbPath);
-const getRecipients = medusaRecipients({ baseUrl: env.MEDUSA_URL, apiKey: env.MEDUSA_ADMIN_API_KEY });
-const mailer = createMailer({ apiKey: env.RESEND_API_KEY, from: env.MAIL_FROM || "news@example.com" });
+http
+  .createServer(async (req, res) => {
+    let bodyText = "";
+    for await (const chunk of req) {
+      bodyText += chunk;
+      if (bodyText.length > 500_000) return res.writeHead(413).end();
+    }
+    const out = await handle(
+      { method: req.method, path: (req.url ?? "").split("?")[0], headers: req.headers, bodyText },
+      deps
+    ).catch((e) => {
+      console.error(e);
+      return { status: 500, body: { error: "Server error" } };
+    });
+    res.writeHead(out.status, { "Content-Type": "application/json" }).end(JSON.stringify(out.body));
+  })
+  .listen(port, () => console.log(`Newsletter app (local) on :${port}`));
 
-startScheduler({ db, getRecipients, mailer });
-const port = Number(env.PORT) || 3000;
-createApp({ db, adminKey: env.ADMIN_KEY?.trim(), getRecipients, mailer }).listen(port, () =>
-  console.log(`Newsletter app listening on :${port}`)
-);
+setInterval(() => runDue(deps).catch(console.error), 60_000).unref();

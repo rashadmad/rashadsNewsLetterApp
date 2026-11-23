@@ -1,15 +1,25 @@
-// Resend is the recommended provider; without an API key we only log (dry run).
-export function createMailer({ apiKey, from, fetchImpl = fetch }) {
-  return async function send({ to, subject, html }) {
-    if (!apiKey) {
-      console.log(`[dry-run] to=${to} subject=${subject}`);
-      return;
-    }
-    const res = await fetchImpl("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to, subject, html }),
-    });
-    if (!res.ok) throw new Error(`Provider responded ${res.status}`);
+import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+
+// A mailer is `async ({ to, subject, html, headers }) => void`. Swap providers by returning another function.
+export function createMailer({ from, replyTo, client } = {}) {
+  if (!from) {
+    return async ({ to, subject }) => console.log(`[dry-run] to=${to} subject=${subject}`);
+  }
+  const ses = client ?? new SESv2Client({});
+  return async ({ to, subject, html, headers = {} }) => {
+    await ses.send(
+      new SendEmailCommand({
+        FromEmailAddress: from,
+        ReplyToAddresses: replyTo ? [replyTo] : undefined,
+        Destination: { ToAddresses: [to] },
+        Content: {
+          Simple: {
+            Subject: { Data: subject, Charset: "UTF-8" },
+            Body: { Html: { Data: html, Charset: "UTF-8" } },
+            Headers: Object.entries(headers).map(([Name, Value]) => ({ Name, Value })),
+          },
+        },
+      })
+    );
   };
 }

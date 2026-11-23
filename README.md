@@ -1,20 +1,25 @@
 # Rashad's Newsletter App
 
-Create, schedule and send newsletter emails. The subscriber list is **not** stored here – recipients are fetched read-only from the store's Medusa backend at send time. See [docs/DESIGN.md](docs/DESIGN.md).
+Create, schedule and send newsletter emails. Runs on AWS serverless (Lambda + DynamoDB + SES). The subscriber list is **not** stored here – recipients are fetched read-only from the store's Medusa at send time. Plan and decisions: [docs/DESIGN.md](docs/DESIGN.md).
 
-## Run
+## Local run
 ```bash
 npm install
-cp .env.example .env   # then export the variables (ADMIN_KEY is required)
-npm start              # listens on PORT (default 3000); dry-run unless RESEND_API_KEY is set
+# export the variables from .env.example (ADMIN_KEY, UNSUBSCRIBE_* are required)
+npm start    # in-memory storage, dry-run mail (MAIL_FROM empty)
 npm test
 ```
 
-## API (header `x-admin-key` required, except `/health`)
-- `POST /emails` `{subject, bodyHtml}` – create draft; `GET /emails`, `GET /emails/:id`, `PUT /emails/:id`
-- `POST /emails/:id/schedule` `{scheduledAt}` – future ISO date; a scheduler sends due emails every minute
-- `POST /emails/:id/send` – send now
+## API (header `x-admin-key`, except `/health`)
+- `POST /emails` `{subject, bodyHtml}`; `GET /emails`, `GET /emails/:id`, `PUT /emails/:id`
+- `POST /emails/:id/schedule` `{scheduledAt}` – future ISO date
+- `POST /emails/:id/send` – queue now (goes out on the next scheduler run, within 5 min)
 - `GET /emails/:id/log` – per-recipient results
 
-## Config
-See `.env.example`: `ADMIN_KEY`, `MEDUSA_URL`, `MEDUSA_ADMIN_API_KEY`, `RESEND_API_KEY`, `MAIL_FROM`, `DB_PATH`, `PORT`.
+Every email gets a per-recipient unsubscribe link and `List-Unsubscribe` headers automatically.
+
+## Deploy (AWS SAM)
+```bash
+sam build && sam deploy --guided   # asks for the parameters in template.yaml
+```
+Prerequisite: verify your sending domain in SES (DNS records in docs/DESIGN.md).

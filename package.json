@@ -1,6 +1,6 @@
 {
   "name": "rashads-newsletter-app",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": { "node": ">=20" },
@@ -8,7 +8,9 @@
     "start": "node src/server.js",
     "test": "node --test test/*.test.js"
   },
-  "dependencies": {
-    "better-sqlite3": "^11.5.0"
+  "devDependencies": {
+    "@aws-sdk/client-sesv2": "^3.700.0",
+    "@aws-sdk/lib-dynamodb": "^3.700.0",
+    "@aws-sdk/client-dynamodb": "^3.700.0"
   }
 }
