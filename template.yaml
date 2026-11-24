@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Newsletter app - create, schedule and send emails (near-zero idle cost)
+
+Parameters:
+  AdminKey: { Type: String, NoEcho: true }
+  MedusaUrl: { Type: String }
+  MedusaAdminApiKey: { Type: String, NoEcho: true }
+  UnsubscribeBaseUrl: { Type: String, Description: "Store page, e.g. https://store.example.com/unsubscribe" }
+  UnsubscribeSecret: { Type: String, NoEcho: true, Description: "Shared with the store; signs unsubscribe tokens" }
+  MailFrom: { Type: String, Description: "e.g. Rashad <news@yourdomain.com> (domain verified in SES)" }
+  MailReplyTo: { Type: String, Default: "" }
+  PostalAddress: { Type: String, Description: "Shown in every email footer" }
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    MemorySize: 256
+    Timeout: 30
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref Table
+        ADMIN_KEY: !Ref AdminKey
+        MEDUSA_URL: !Ref MedusaUrl
+        MEDUSA_ADMIN_API_KEY: !Ref MedusaAdminApiKey
+        UNSUBSCRIBE_BASE_URL: !Ref UnsubscribeBaseUrl
+        UNSUBSCRIBE_SECRET: !Ref UnsubscribeSecret
+        MAIL_FROM: !Ref MailFrom
+        MAIL_REPLY_TO: !Ref MailReplyTo
+        POSTAL_ADDRESS: !Ref PostalAddress
+
+Resources:
+  Table:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: pk, AttributeType: S }
+        - { AttributeName: sk, AttributeType: S }
+        - { AttributeName: gsi1pk, AttributeType: S }
+        - { AttributeName: gsi1sk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: pk, KeyType: HASH }
+        - { AttributeName: sk, KeyType: RANGE }
+      GlobalSecondaryIndexes:
+        - IndexName: gsi1
+          KeySchema:
+            - { AttributeName: gsi1pk, KeyType: HASH }
+            - { AttributeName: gsi1sk, KeyType: RANGE }
+          Projection: { ProjectionType: KEYS_ONLY }
+      PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true }
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda.api
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref Table }
+      Events:
+        Any:
+          Type: HttpApi
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Format: esm
+        Target: es2022
+        EntryPoints: [src/lambda.ts]
+        OutExtension: [".js=.mjs"]
+
+  SchedulerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda.scheduler
+      CodeUri: .
+      Timeout: 900
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref Table }
+        - Statement:
+            - { Effect: Allow, Action: ses:SendEmail, Resource: "*" }
+      Events:
+        Every5Minutes:
+          Type: Schedule
+          Properties:
+            Schedule: rate(5 minutes)
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Format: esm
+        Target: es2022
+        EntryPoints: [src/lambda.ts]
+        OutExtension: [".js=.mjs"]
+
+Outputs:
+  ApiUrl:
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
