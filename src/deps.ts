@@ -3,7 +3,9 @@ import { medusaRecipients } from "./recipients.js";
 import { createDynamoStore } from "./store/dynamo.js";
 import { createMemoryStore } from "./store/memory.js";
 
-export function buildDeps(env = process.env) {
+import type { Deps } from "./types.js";
+
+export function buildDeps(env: NodeJS.ProcessEnv = process.env): Deps {
   return {
     adminKey: env.ADMIN_KEY?.trim(),
     store: env.TABLE_NAME ? createDynamoStore({ tableName: env.TABLE_NAME }) : createMemoryStore(),

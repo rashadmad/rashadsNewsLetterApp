@@ -1,13 +1,22 @@
 import { randomUUID } from "node:crypto";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import type { Email, LogEntry, Store } from "../types.js";
 import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 // Single table: pk=EMAIL#<id>; sk=META for the email, sk=LOG#... for send results.
 // Sparse index gsi1 (gsi1pk=SCHEDULED, gsi1sk=scheduledAt) finds due emails without scanning.
-const key = (id, sk = "META") => ({ pk: `EMAIL#${id}`, sk });
-const toEmail = (i) => i && { id: i.id, subject: i.subject, bodyHtml: i.bodyHtml, status: i.status, scheduledAt: i.scheduledAt ?? null, sentAt: i.sentAt ?? null, createdAt: i.createdAt };
+const key = (id: string, sk = "META") => ({ pk: `EMAIL#${id}`, sk });
+type Item = Record<string, any>;
+const toEmail = (i: Item): Email => ({ id: i.id, subject: i.subject, bodyHtml: i.bodyHtml, status: i.status, scheduledAt: i.scheduledAt ?? null, sentAt: i.sentAt ?? null, createdAt: i.createdAt,
+});
 
-export function createDynamoStore({ tableName, client = DynamoDBDocumentClient.from(new DynamoDBClient({})) }) {
+export function createDynamoStore({
+  tableName,
+  client = DynamoDBDocumentClient.from(new DynamoDBClient({})),
+}: {
+  tableName: string;
+  client?: Pick<DynamoDBDocumentClient, "send">;
+}): Store {
   const T = tableName;
   return {
     async createEmail({ subject, bodyHtml }) {
@@ -18,17 +27,17 @@ export function createDynamoStore({ tableName, client = DynamoDBDocumentClient.f
     },
     async getEmail(id) {
       const r = await client.send(new GetCommand({ TableName: T, Key: key(id) }));
-      return toEmail(r.Item);
+      return r.Item ? toEmail(r.Item) : null;
     },
     async listEmails() {
       const r = await client.send(new ScanCommand({ TableName: T, FilterExpression: "sk = :m", ExpressionAttributeValues: { ":m": "META" } }));
-      return r.Items.map(toEmail).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      return (r.Items ?? []).map(toEmail).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     },
     async updateEmail(id, patch, { onlyIfStatus } = {}) {
-      const names = {};
-      const values = {};
-      const sets = [];
-      const removes = [];
+      const names: Record<string, string> = {};
+      const values: Record<string, unknown> = {};
+      const sets: string[] = [];
+      const removes: string[] = [];
       for (const [k, v] of Object.entries(patch)) {
         names[`#${k}`] = k;
         values[`:${k}`] = v;
@@ -37,7 +46,7 @@ export function createDynamoStore({ tableName, client = DynamoDBDocumentClient.f
       if (patch.status === "scheduled") {
         sets.push("gsi1pk = :scheduledPk", "gsi1sk = :scheduledAt");
         values[":scheduledPk"] = "SCHEDULED";
-        values[":scheduledAt"] = patch.scheduledAt;
+        values[":scheduledAt"] = patch.scheduledAt ?? null;
       } else if (patch.status) {
         removes.push("gsi1pk", "gsi1sk");
       }
@@ -60,7 +69,7 @@ export function createDynamoStore({ tableName, client = DynamoDBDocumentClient.f
         );
         return true;
       } catch (e) {
-        if (e.name === "ConditionalCheckFailedException") return false;
+        if (e instanceof Error && e.name === "ConditionalCheckFailedException") return false;
         throw e;
       }
     },
@@ -74,15 +83,15 @@ export function createDynamoStore({ tableName, client = DynamoDBDocumentClient.f
         })
       );
       // The index only projects keys, so read ids from pk
-      return r.Items.map((i) => i.pk.slice("EMAIL#".length));
+      return (r.Items ?? []).map((i) => i.pk.slice("EMAIL#".length));
     },
     async addLog(id, entry) {
       const createdAt = new Date().toISOString();
       await client.send(new PutCommand({ TableName: T, Item: { ...key(id, `LOG#${createdAt}#${entry.recipient}`), ...entry, createdAt } }));
     },
     async getLog(id) {
-      const out = [];
-      let startKey;
+      const out: LogEntry[] = [];
+      let startKey: Record<string, unknown> | undefined;
       do {
         const r = await client.send(
           new QueryCommand({
@@ -92,7 +101,7 @@ export function createDynamoStore({ tableName, client = DynamoDBDocumentClient.f
             ExclusiveStartKey: startKey,
           })
         );
-        out.push(...r.Items.map(({ recipient, ok, error, createdAt }) => ({ recipient, ok, error, createdAt })));
+        out.push(...(r.Items ?? []).map(({ recipient, ok, error, createdAt }) => ({ recipient, ok, error, createdAt })));
         startKey = r.LastEvaluatedKey;
       } while (startKey);
       return out;

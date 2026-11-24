@@ -15,9 +15,9 @@ http
       if (bodyText.length > 500_000) return res.writeHead(413).end();
     }
     const out = await handle(
-      { method: req.method, path: (req.url ?? "").split("?")[0], headers: req.headers, bodyText },
+      { method: req.method ?? "GET", path: (req.url ?? "").split("?")[0] ?? "", headers: req.headers, bodyText },
       deps
-    ).catch((e) => {
+    ).catch((e: unknown) => {
       console.error(e);
       return { status: 500, body: { error: "Server error" } };
     });

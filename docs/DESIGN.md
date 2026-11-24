@@ -1,20 +1,22 @@
 # Newsletter app – design (v3)
 
+![Architecture diagram](images/architecture.svg)
+
 ## Scope
 Create emails, schedule them, send them. **Not** in scope: signups or owning the subscriber list – the store's Medusa holds the list and handles unsubscribes.
 
 ## Architecture (AWS serverless, near-zero idle cost)
-- **API**: API Gateway HTTP API → Lambda (`src/lambda.js: api`), protected by `x-admin-key`. API-first, no UI yet.
+- **API**: API Gateway HTTP API → Lambda (`src/lambda.ts: api`), protected by `x-admin-key`. API-first, no UI yet.
 - **Storage**: one DynamoDB on-demand table – drafts, schedules, send log only. A sparse index finds due emails.
 - **Scheduling**: an EventBridge schedule runs the `scheduler` Lambda every 5 minutes; it sends anything scheduled in the past. "Send now" just schedules for now.
-- **Sending**: Amazon SES via a swappable mailer function (`src/mailer.js`). Dry-run (logs only) when `MAIL_FROM` is unset.
+- **Sending**: Amazon SES via a swappable mailer function (`src/mailer.ts`). Dry-run (logs only) when `MAIL_FROM` is unset.
 - **Deploy**: AWS SAM (`template.yaml`). Secrets are CloudFormation `NoEcho` parameters for simplicity (SSM Parameter Store is a later upgrade).
 - Local dev: `npm start` uses in-memory storage.
 - Known limit: if the scheduler Lambda dies mid-send, the email stays in `sending` (so it is never double-sent); check `GET /emails/:id/log` and re-queue manually. Fine for a small list; use SQS for large lists.
 - The DynamoDB store is unit-untested against real AWS; do a test deploy with a dry-run first.
 
 ## Recipients (from Medusa)
-At send time we call Medusa Admin API `GET /admin/customers` (read-only key) and keep customers with `metadata.newsletter === true`, deduped by lowercased email. The store session is adding that opt-in flag; if they choose a different shape only `src/recipients.js` changes.
+At send time we call Medusa Admin API `GET /admin/customers` (read-only key) and keep customers with `metadata.newsletter === true`, deduped by lowercased email. The store session is adding that opt-in flag; if they choose a different shape only `src/recipients.ts` changes.
 
 ## Unsubscribe (agreed contract with the store)
 Every email gets a footer link, plus `List-Unsubscribe` and `List-Unsubscribe-Post: List-Unsubscribe=One-Click` headers (needed by Gmail/Yahoo), all pointing to the store's unsubscribe URL (`UNSUBSCRIBE_BASE_URL`) with `?token=<token>`.
@@ -23,7 +25,7 @@ Every email gets a footer link, plus `List-Unsubscribe` and `List-Unsubscribe-Po
 ```
 token = base64url(lowercased email) + "." + base64url(HMAC-SHA256(secret, lowercased email))
 ```
-The store endpoint must verify the HMAC (constant-time), then set `metadata.newsletter=false` on the customer with that email. It should accept **GET** (confirmation page) and **POST** (one-click from mail clients; token stays in the query string). Reference code: `src/unsubscribe.js` (`makeToken` / `verifyToken`). Tokens have no expiry, so old emails keep working. Sending refuses to run without these settings. `POSTAL_ADDRESS` is added to the footer.
+The store endpoint must verify the HMAC (constant-time), then set `metadata.newsletter=false` on the customer with that email. It should accept **GET** (confirmation page) and **POST** (one-click from mail clients; token stays in the query string). Reference code: `src/unsubscribe.ts` (`makeToken` / `verifyToken`). Tokens have no expiry, so old emails keep working. Sending refuses to run without these settings. `POSTAL_ADDRESS` is added to the footer.
 
 ## Email provider: Amazon SES
 Cheapest realistic option (about $0.10 per 1,000 emails). A Cloudflare professional mailbox / Email Routing is for person-to-person mail, not bulk newsletters, so it isn't used for sending – but use the same domain so everything lines up (`From: news@yourdomain.com`, `Reply-To` = your professional address via `MAIL_REPLY_TO`).

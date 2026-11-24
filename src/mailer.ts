@@ -1,7 +1,15 @@
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import type { Mailer } from "./types.js";
 
-// A mailer is `async ({ to, subject, html, headers }) => void`. Swap providers by returning another function.
-export function createMailer({ from, replyTo, client } = {}) {
+export function createMailer({
+  from,
+  replyTo,
+  client,
+}: {
+  from?: string;
+  replyTo?: string;
+  client?: Pick<SESv2Client, "send">;
+} = {}): Mailer {
   if (!from) {
     return async ({ to, subject }) => console.log(`[dry-run] to=${to} subject=${subject}`);
   }
@@ -15,7 +23,7 @@ export function createMailer({ from, replyTo, client } = {}) {
         Content: {
           Simple: {
             Subject: { Data: subject, Charset: "UTF-8" },
-            Body: { Html: { Data: html, Charset: "UTF-8" } },
+            Body: { Html: { Data: html ?? "", Charset: "UTF-8" } },
             Headers: Object.entries(headers).map(([Name, Value]) => ({ Name, Value })),
           },
         },

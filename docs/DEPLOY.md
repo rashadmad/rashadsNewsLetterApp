@@ -69,6 +69,10 @@ $ npm run send-test -- you@example.com
 ```
 Check your inbox (and spam). Without `MAIL_FROM` it only prints "Dry run" and sends nothing.
 
+This is what a sent email looks like (sample):
+
+![Sample newsletter email](images/sample-email.png)
+
 ## 7. Create, schedule and send an email with the API
 Set shortcuts (use your ApiUrl and AdminKey):
 ```

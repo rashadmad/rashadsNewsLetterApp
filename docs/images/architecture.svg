@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#555"/>
+    </marker>
+    <style>
+      .box{fill:#fff;stroke:#333;stroke-width:1.5}
+      .aws{fill:#fff4e0;stroke:#e08a00}
+      .store{fill:#e8f1ff;stroke:#2f6fdd}
+      .t{font-size:15px;font-weight:600;fill:#222;text-anchor:middle}
+      .s{font-size:12px;fill:#555;text-anchor:middle}
+      .l{font-size:12px;fill:#444}
+      .ln{stroke:#555;stroke-width:1.5;fill:none;marker-end:url(#a)}
+    </style>
+  </defs>
+  <rect width="960" height="420" fill="#fafafa"/>
+  <text x="480" y="30" class="t" style="font-size:18px">Newsletter app: how the pieces connect</text>
+
+  <rect x="30" y="70" width="210" height="90" rx="10" class="box store"/>
+  <text x="135" y="105" class="t">Store signup form</text>
+  <text x="135" y="125" class="s">customer opts in</text>
+  <text x="135" y="142" class="s">(unsubscribe page lives here too)</text>
+
+  <rect x="30" y="250" width="210" height="90" rx="10" class="box store"/>
+  <text x="135" y="285" class="t">Medusa</text>
+  <text x="135" y="305" class="s">customers with</text>
+  <text x="135" y="322" class="s">metadata.newsletter = true</text>
+
+  <rect x="330" y="50" width="190" height="80" rx="10" class="box aws"/>
+  <text x="425" y="85" class="t">API Gateway + Lambda</text>
+  <text x="425" y="105" class="s">create / edit / schedule</text>
+
+  <rect x="330" y="170" width="190" height="80" rx="10" class="box aws"/>
+  <text x="425" y="205" class="t">DynamoDB</text>
+  <text x="425" y="225" class="s">drafts, schedules, send log</text>
+
+  <rect x="330" y="290" width="190" height="80" rx="10" class="box aws"/>
+  <text x="425" y="325" class="t">EventBridge → Lambda</text>
+  <text x="425" y="345" class="s">every 5 min: send what is due</text>
+
+  <rect x="650" y="290" width="190" height="80" rx="10" class="box aws"/>
+  <text x="745" y="325" class="t">Amazon SES</text>
+  <text x="745" y="345" class="s">the-quintessential-shop.com</text>
+
+  <rect x="650" y="170" width="190" height="80" rx="10" class="box"/>
+  <text x="745" y="205" class="t">Subscriber inbox</text>
+  <text x="745" y="225" class="s">email + unsubscribe link</text>
+
+  <rect x="650" y="50" width="190" height="80" rx="10" class="box"/>
+  <text x="745" y="85" class="t">You (curl / API)</text>
+  <text x="745" y="105" class="s">x-admin-key header</text>
+
+  <path d="M135 160 L135 250" class="ln"/>
+  <text x="145" y="210" class="l">saved by store</text>
+  <path d="M650 90 L520 90" class="ln"/>
+  <path d="M425 130 L425 170" class="ln"/>
+  <path d="M425 290 L425 250" class="ln"/>
+  <path d="M330 330 L240 310" class="ln"/>
+  <text x="245" y="360" class="l">read list (read-only)</text>
+  <path d="M520 330 L650 330" class="ln"/>
+  <path d="M745 290 L745 250" class="ln"/>
+  <text x="30" y="400" class="l">Unsubscribe link in each email → store page → sets metadata.newsletter = false in Medusa (signed token).</text>
+</svg>

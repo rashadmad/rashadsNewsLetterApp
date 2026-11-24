@@ -2,12 +2,25 @@
 
 Create, schedule and send newsletter emails. Runs on AWS serverless (Lambda + DynamoDB + SES). The subscriber list is **not** stored here – recipients are fetched read-only from the store's Medusa at send time. Plan and decisions: [docs/DESIGN.md](docs/DESIGN.md).
 
+## How it fits together
+
+![Architecture diagram](docs/images/architecture.png)
+
+## What an email looks like
+
+Every email gets an unsubscribe footer and `List-Unsubscribe` headers automatically (illustrative sample):
+
+![Sample newsletter email](docs/images/sample-email.png)
+
+The code is TypeScript (strict). `npm run docs:images` regenerates these pictures (needs Google Chrome).
+
 ## Local run
 ```bash
 npm install
 # export the variables from .env.example (ADMIN_KEY, UNSUBSCRIBE_* are required)
 npm start    # in-memory storage, dry-run mail (MAIL_FROM empty)
 npm test
+npm run typecheck   # TypeScript strict check
 ```
 
 ## API (header `x-admin-key`, except `/health`)
